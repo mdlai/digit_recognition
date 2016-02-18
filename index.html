@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>D3 Basics</title>
+    <script src="http://d3js.org/d3.v3.min.js"></script>
+  </head>
+  <body>
+    <script>
+     var pixels = 784
+     var grid = Array.apply(null, Array(784)).map(function (_, i) {return i;});
+     var colorScale = d3.scale.category20c();
+     var toggleColor = (function(){
+       var currentColor = "grey";
+       return function(){
+         currentColor = currentColor == "grey" ? "blue" : "grey";
+         d3.select(this).style("fill",currentColor);
+       }
+     })
+
+    //  var picCapture = (function(){
+    //    if()
+    //    return function(){
+     //
+    //    }
+     //
+    //  })
+     var pic = []
+     var svg = d3.select("body").append("svg")
+       .attr("width", 600)
+       .attr("height", 600);
+     var rect = svg.selectAll("rect")
+       .data(grid)
+       .enter().append("rect")
+       .attr("y", function(d,i) { return Math.ceil((d+.1)/28)*20})
+       .attr("x", function(d, i) { return d%28 * 20; })
+       .attr("width", 19)
+       .attr("height", 19)
+       .style("fill", function(d, i) { return "#aec7e8"; })
+       .on("mouseover",function(d) {
+         d3.select(this).style("fill","#1f77b4");
+         d3.select(rect[0][d+1]).style("fill","#1f77b4");
+         pic.push(d);
+         pic.push(d+1);
+       });
+    </script>
+  </body>
+</html>
