@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Prediction Wizard</title>
+    <style>
+
+     body {
+       font-family: Verdana,Arial,sans-serif;
+     }
+
+     h2 {
+       font-size: 1.2em;
+       margin: auto;
+       color: gray
+     }
+
+     .space {
+       margin-bottom: 20 px;
+     }
+
+     .wrapper {
+       width: 800px;
+       margin-left: auto;
+       margin-right: auto;
+       margin-bottom: 0px;
+     }
+
+     #bar_chart {
+       margin-bottom: 0 px;
+     }
+
+     .bar {
+       fill: #FF75A3;
+     }
+
+     span {
+       color: steelblue;
+     }
+
+     button,
+   	.button {
+   		-moz-appearance: none;
+   		-webkit-appearance: none;
+   		-ms-appearance: none;
+   		appearance: none;
+   		-moz-transition: background-color 0.2s ease, box-shadow 0.2s ease, color 0.2s ease;
+   		-webkit-transition: background-color 0.2s ease, box-shadow 0.2s ease, color 0.2s ease;
+   		-ms-transition: background-color 0.2s ease, box-shadow 0.2s ease, color 0.2s ease;
+   		transition: background-color 0.2s ease, box-shadow 0.2s ease, color 0.2s ease;
+   		background-color: transparent;
+   		border: 0;
+   		box-shadow: inset 0 0 0 1px rgba(160, 160, 160, 0.3);
+   		color: #3c3b3b !important;
+   		cursor: pointer;
+   		display: inline-block;
+   		font-family: "Raleway", Helvetica, sans-serif;
+   		font-size: 0.6em;
+   		font-weight: 800;
+   		height: 4.8125em;
+   		letter-spacing: 0.25em;
+   		line-height: 4.8125em;
+   		padding: 0 2.5em;
+   		text-align: center;
+   		text-decoration: none;
+   		text-transform: uppercase;
+   		white-space: nowrap;
+   	}
+
+    </style>
+    <!-- Import the libraries: jQuery, d3, d3.slider -->
+    <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+    <script src="http://d3js.org/d3.v3.min.js"></script>
+  </head>
+  <body>
+    <div id="chart_area" class="wrapper">
+      <h2>Number Prediction <button type="button" onClick="newNumber()">New</button><div id="preview">Preview: </div></h2>
+      <p class="space"></p>
+      <div id="bar_chart">
+      </div>
+
+    </div>
+
+    <div id="grid" class="wrapper">
+    </div>
+
+    <script>
+     var pixels = 784
+     var grid = Array.apply(null, Array(784)).map(function (_, i) {return i;});
+
+     var toggleColor = (function(){
+       var currentColor = "grey";
+       return function(){
+         currentColor = currentColor == "grey" ? "blue" : "grey";
+         d3.select(this).style("fill",currentColor);
+       }
+     })
+
+
+     var current_age = 25;
+     var current_year = 2010;
+     var current_nodes = 1;
+     var current_risk = 97.0;
+
+     var chart = d3.select("#bar_chart")
+                   .append("svg:svg")
+                   .attr("width", 800)
+                   .attr("height", 50);
+
+     var chance_scale = d3.scale.linear()
+                                .domain([0, 100])
+                                .range([0, 800]);
+
+     var bar = chart.append("g")
+                    .attr("class", "bar")
+
+       bar.append("svg:rect")
+          .attr("id", "chancebar")
+          .attr("class", "bar")
+          .attr("width", 560)
+          .attr("height", 50)
+          .style("fill", function(d, i) { return "#aec7e8"; });
+
+     bar.append("text")
+        .attr("id", "percent_text")
+        .attr("dy", ".75em")
+        .attr("y", 15)
+        .attr("x", 260)
+        .attr("text-anchor", "middle")
+        .attr("fill", "white")
+        .attr("font-size", 30)
+
+// Finds the Guess of a grid
+      function getAndDrawChance(pixel1){
+       $.ajax({
+         type: "POST",
+         contentType: "application/json; charset=utf-8",
+         url: "/score",
+         dataType: "json",
+         async: true,
+         data: "{\"example\": ["+pixel1+"]}",
+         success: function (data) {
+           var chance = data["score"];
+           d3.select("#percent_text")
+             .text("Prediction: "+chance.toFixed(0));
+         },
+         error: function (result) {
+         }
+       })
+      }
+
+// Creates the grid of rectangles
+     var pic = []
+
+     var preview = d3.select("#preview").append("svg")
+        .attr("width", 28)
+        .attr("height", 28);
+      var preview_rect = preview.selectAll("rect")
+      .data(grid)
+      .enter().append("rect")
+      .attr("y", function(d,i) { return Math.floor((d)/28)})
+      .attr("x", function(d, i) { return d%28; })
+      .attr("width", 1)
+      .attr("height", 1)
+      .style("fill", function(d, i) { return "#aec7e8"; });
+
+      function update_preview(picture){
+        for (i = 0; i < picture.length; i++) {
+            d3.select(preview_rect[0][picture[i]])
+            .style("fill","#1f77b4");
+        }
+        // preview_rect.data(picture)
+        // .style("fill","#1f77b4")
+      }
+
+
+
+
+     var svg = d3.select("#grid").append("svg")
+       .attr("width", 600)
+       .attr("height", 600);
+     var all_rect = svg.selectAll("rect")
+       .data(grid)
+       .enter().append("rect")
+       .attr("y", function(d,i) { return Math.floor((d)/28)*20})
+       .attr("x", function(d, i) { return d%28 * 20; })
+       .attr("width", 19)
+       .attr("height", 19)
+       .style("fill", function(d, i) { return "#aec7e8"; });
+
+       var startDragging = function(e) {
+           // When the mouse down event is received
+           if (e.type == "mousedown") {
+               all_rect.on("mouseover",function(d) {
+                 d3.select(this).style("fill","#1f77b4");
+                 d3.select(all_rect[0][d+1]).style("fill","#1f77b4");
+                 d3.select(all_rect[0][d-1]).style("fill","#1f77b4");
+                 d3.select(all_rect[0][d+28]).style("fill","#1f77b4");
+                 d3.select(all_rect[0][d-28]).style("fill","#1f77b4");
+                //  getAndDrawChance(d,d+1)
+                 pic.push(d);
+                 pic.push(d+1);
+                 pic.push(d-1);
+                 pic.push(d-28);
+                 pic.push(d+28);
+                 update_preview(pic)
+                 getAndDrawChance(pic)
+               })
+               // Bind the events for dragging and stopping
+              //  $(document).bind("mousemove", continueDragging);
+
+           }
+         }
+         var endDragging = function(e) {
+             // When the mouse down event is received
+             if (e.type == "mouseup") {
+                 all_rect.on("mouseover",function(d) {
+                 })
+                 // Bind the events for dragging and stopping
+                //  $(document).bind("mousemove", continueDragging);
+
+             }
+           }
+// Reset the grid
+     function newNumber(){
+    //Alternate Method
+      //  $.ajax({
+      //    type: "POST",
+      //    contentType: "application/json; charset=utf-8",
+      //    url: "/score",
+      //    dataType: "json",
+      //    async: true,
+      //    data: "{\"example\": [-100]}",
+      //    success: function () {
+      //      d3.select("#percent_text")
+      //        .text("Prediction: Nothing")
+      //      all_rect.style("fill", function(d, i) { return "#aec7e8"; });
+      //    },
+      //    error: function (result) {
+      //    }
+      // })
+
+       pic = []
+       all_rect.style("fill", function(d, i) { return "#aec7e8"; });
+       preview_rect.style("fill", function(d, i) { return "#aec7e8"; });
+       d3.select("#percent_text")
+         .text("Prediction: Nothing");
+     };
+     newNumber()
+     $(document).bind("mousedown", startDragging);
+     $(document).bind("mouseup", endDragging);
+    </script>
+  </body>
+</html>
